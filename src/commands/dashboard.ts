@@ -21,7 +21,7 @@ import { Command } from "commander";
 import { loadConfig } from "../config.ts";
 import { ValidationError } from "../errors.ts";
 import { createEventStore } from "../events/store.ts";
-import { accent, brand, color, visibleLength } from "../logging/color.ts";
+import { accent, brand, chalk, color, visibleLength } from "../logging/color.ts";
 import {
 	buildAgentColorMap,
 	extendAgentColorMap,
@@ -298,6 +298,7 @@ const TRACKER_CACHE_TTL_MS = 10_000; // 10 seconds
 
 interface DashboardData {
 	currentRunId?: string | null;
+	selectedTmuxSession?: string | null;
 	status: StatusData;
 	recentMail: MailMessage[];
 	mergeQueue: Array<{ branchName: string; agentName: string; status: string }>;
@@ -362,7 +363,14 @@ async function loadDashboardData(
 	}
 
 	// If run-scoped, filter agents to only those belonging to the current run.
-	const filteredAgents = filterAgentsByRun(allSessions, runId);
+	const filteredAgents = filterAgentsByRun(allSessions, runId).sort((a, b) => {
+		const activeStates = ["working", "booting", "stalled"];
+		const aActive = activeStates.includes(a.state);
+		const bActive = activeStates.includes(b.state);
+		if (aActive && !bActive) return -1;
+		if (!aActive && bActive) return 1;
+		return 0;
+	});
 
 	// Count unread mail
 	let unreadMailCount = 0;
@@ -566,15 +574,8 @@ export function renderAgentPanel(
 	const separator = dimHorizontalLine(leftWidth, dimBox.tee, dimBox.teeRight);
 	output += `${CURSOR.cursorTo(startRow + 2, 1)}${separator}\n`;
 
-	// Sort agents: active first, then completed, then zombie
-	const agents = [...data.status.agents].sort((a, b) => {
-		const activeStates = ["working", "booting", "stalled"];
-		const aActive = activeStates.includes(a.state);
-		const bActive = activeStates.includes(b.state);
-		if (aActive && !bActive) return -1;
-		if (!aActive && bActive) return 1;
-		return 0;
-	});
+	// Agents are already sorted in loadDashboardData
+	const agents = data.status.agents;
 
 	const now = Date.now();
 	const maxRows = panelHeight - 4; // header + col headers + separator + border
@@ -583,6 +584,8 @@ export function renderAgentPanel(
 	for (let i = 0; i < visibleAgents.length; i++) {
 		const agent = visibleAgents[i];
 		if (!agent) continue;
+
+		const isSelected = agent.tmuxSession === data.selectedTmuxSession;
 
 		const icon = stateIcon(agent.state);
 		const stateColorFn = stateColor(agent.state);
@@ -606,7 +609,11 @@ export function renderAgentPanel(
 		const linePadding = " ".repeat(
 			Math.max(0, leftWidth - visibleLength(lineContent) - visibleLength(dimBox.vertical)),
 		);
-		output += `${CURSOR.cursorTo(startRow + 3 + i, 1)}${lineContent}${linePadding}${dimBox.vertical}\n`;
+		let finalLine = `${lineContent}${linePadding}${dimBox.vertical}`;
+		if (isSelected) {
+			finalLine = chalk.inverse(finalLine);
+		}
+		output += `${CURSOR.cursorTo(startRow + 3 + i, 1)}${finalLine}\n`;
 	}
 
 	// Fill remaining rows with empty lines
@@ -1009,20 +1016,73 @@ async function executeDashboard(opts: DashboardOpts): Promise<void> {
 
 	// Hide cursor
 	process.stdout.write(CURSOR.hideCursor);
+	// Enable mouse tracking
+	process.stdout.write("\x1b[?1000h\x1b[?1006h");
 
 	// Clean exit on Ctrl+C
 	let running = true;
-	process.on("SIGINT", () => {
+	const cleanup = () => {
 		running = false;
 		closeDashboardStores(stores);
 		process.stdout.write(CURSOR.showCursor);
+		process.stdout.write("\x1b[?1000l\x1b[?1006l");
 		process.stdout.write(CURSOR.clear);
+		if (process.stdin.isTTY) {
+			process.stdin.setRawMode(false);
+			process.stdin.pause();
+		}
 		process.exit(0);
-	});
+	};
+
+	process.on("SIGINT", cleanup);
+
+	let selectedTmuxSession: string | null = null;
+	let latestAgents: any[] = [];
+	let latestAgentPanelHeight = 0;
+	const agentPanelStart = 3;
+
+	if (process.stdin.isTTY) {
+		process.stdin.setRawMode(true);
+		process.stdin.resume();
+		process.stdin.setEncoding("utf8");
+		process.stdin.on("data", (key: string) => {
+			if (key === "\u0003" || key.toLowerCase() === "q") {
+				cleanup();
+			}
+			if (key.startsWith("\x1b[<")) {
+				const match = key.match(/\x1b\[<(\d+);(\d+);(\d+)([mM])/);
+				if (match && match[1] && match[2] && match[3] && match[4]) {
+					const button = parseInt(match[1], 10);
+					const x = parseInt(match[2], 10);
+					const y = parseInt(match[3], 10);
+					const release = match[4] === "m";
+					if (button === 0 && !release) {
+						// Calculate which agent row was clicked
+						const maxRows = latestAgentPanelHeight - 4;
+						const rowOffset = y - (agentPanelStart + 3);
+						if (rowOffset >= 0 && rowOffset < Math.min(latestAgents.length, maxRows)) {
+							const clickedAgent = latestAgents[rowOffset];
+							if (clickedAgent && clickedAgent.tmuxSession) {
+								selectedTmuxSession = clickedAgent.tmuxSession;
+								Bun.spawn(["tmux", "switch-client", "-t", clickedAgent.tmuxSession]);
+								// Force immediate re-render is optional; it will update on next tick
+							}
+						}
+					}
+				}
+			}
+		});
+	}
 
 	// Poll loop
 	while (running) {
 		const data = await loadDashboardData(root, stores, runId, thresholds, eventBuffer);
+		data.selectedTmuxSession = selectedTmuxSession;
+		
+		latestAgents = data.status.agents;
+		const height = process.stdout.rows ?? 30;
+		latestAgentPanelHeight = computeAgentPanelHeight(height, latestAgents.length);
+
 		renderDashboard(data, interval);
 		await Bun.sleep(interval);
 	}
