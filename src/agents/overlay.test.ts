@@ -588,13 +588,13 @@ describe("writeOverlay", () => {
 		await cleanupTempDir(tempDir);
 	});
 
-	test("creates .claude/CLAUDE.md in worktree directory", async () => {
+	test("creates GEMINI.md in worktree directory", async () => {
 		const worktreePath = join(tempDir, "worktree");
 		const config = makeConfig();
 
 		await writeOverlay(worktreePath, config, "/nonexistent-canonical-root");
 
-		const outputPath = join(worktreePath, ".claude", "CLAUDE.md");
+		const outputPath = join(worktreePath, "GEMINI.md");
 		const file = Bun.file(outputPath);
 		const exists = await file.exists();
 		expect(exists).toBe(true);
@@ -606,14 +606,14 @@ describe("writeOverlay", () => {
 
 		await writeOverlay(worktreePath, config, "/nonexistent-canonical-root");
 
-		const outputPath = join(worktreePath, ".claude", "CLAUDE.md");
+		const outputPath = join(worktreePath, "GEMINI.md");
 		const content = await Bun.file(outputPath).text();
 		expect(content).toContain("file-writer-test");
 		expect(content).toContain(config.taskId);
 		expect(content).toContain(config.branchName);
 	});
 
-	test("creates .claude directory even if worktree already exists", async () => {
+	test("creates GEMINI.md directory even if worktree already exists", async () => {
 		const worktreePath = join(tempDir, "existing-worktree");
 		const { mkdir } = await import("node:fs/promises");
 		await mkdir(worktreePath, { recursive: true });
@@ -621,22 +621,21 @@ describe("writeOverlay", () => {
 		const config = makeConfig();
 		await writeOverlay(worktreePath, config, "/nonexistent-canonical-root");
 
-		const outputPath = join(worktreePath, ".claude", "CLAUDE.md");
+		const outputPath = join(worktreePath, "GEMINI.md");
 		const exists = await Bun.file(outputPath).exists();
 		expect(exists).toBe(true);
 	});
 
-	test("overwrites existing CLAUDE.md if it already exists", async () => {
+	test("overwrites existing GEMINI.md if it already exists", async () => {
 		const worktreePath = join(tempDir, "worktree");
-		const claudeDir = join(worktreePath, ".claude");
 		const { mkdir } = await import("node:fs/promises");
-		await mkdir(claudeDir, { recursive: true });
-		await Bun.write(join(claudeDir, "CLAUDE.md"), "old content");
+		await mkdir(worktreePath, { recursive: true });
+		await Bun.write(join(worktreePath, "GEMINI.md"), "old content");
 
 		const config = makeConfig({ agentName: "new-agent" });
 		await writeOverlay(worktreePath, config, "/nonexistent-canonical-root");
 
-		const content = await Bun.file(join(claudeDir, "CLAUDE.md")).text();
+		const content = await Bun.file(join(worktreePath, "GEMINI.md")).text();
 		expect(content).toContain("new-agent");
 		expect(content).not.toContain("old content");
 	});
@@ -648,7 +647,7 @@ describe("writeOverlay", () => {
 		const generated = await generateOverlay(config);
 		await writeOverlay(worktreePath, config, "/nonexistent-canonical-root");
 
-		const written = await Bun.file(join(worktreePath, ".claude", "CLAUDE.md")).text();
+		const written = await Bun.file(join(worktreePath, "GEMINI.md")).text();
 		expect(written).toBe(generated);
 	});
 
@@ -691,12 +690,12 @@ describe("writeOverlay", () => {
 		// This should succeed — the worktree is not the canonical root
 		await writeOverlay(worktreePath, config, fakeProjectRoot);
 
-		const outputPath = join(worktreePath, ".claude", "CLAUDE.md");
+		const outputPath = join(worktreePath, "GEMINI.md");
 		const exists = await Bun.file(outputPath).exists();
 		expect(exists).toBe(true);
 	});
 
-	test("does not write CLAUDE.md when guard rejects the path", async () => {
+	test("does not write GEMINI.md when guard rejects the path", async () => {
 		const fakeProjectRoot = join(tempDir, "project-no-write");
 		await mkdir(fakeProjectRoot, { recursive: true });
 
@@ -708,8 +707,8 @@ describe("writeOverlay", () => {
 			// Expected
 		}
 
-		// Verify CLAUDE.md was NOT written
-		const claudeMdPath = join(fakeProjectRoot, ".claude", "CLAUDE.md");
+		// Verify GEMINI.md was NOT written
+		const claudeMdPath = join(fakeProjectRoot, "GEMINI.md");
 		const exists = await Bun.file(claudeMdPath).exists();
 		expect(exists).toBe(false);
 	});
@@ -733,7 +732,7 @@ describe("writeOverlay", () => {
 		// Must succeed — worktreePath !== fakeProjectRoot even though config.yaml exists
 		await writeOverlay(worktreePath, config, fakeProjectRoot);
 
-		const outputPath = join(worktreePath, ".claude", "CLAUDE.md");
+		const outputPath = join(worktreePath, "GEMINI.md");
 		const exists = await Bun.file(outputPath).exists();
 		expect(exists).toBe(true);
 	});
@@ -744,7 +743,7 @@ describe("writeOverlay", () => {
 		await writeOverlay(worktreePath, config, "/nonexistent-canonical-root", "AGENTS.md");
 		const outputPath = join(worktreePath, "AGENTS.md");
 		expect(await Bun.file(outputPath).exists()).toBe(true);
-		expect(await Bun.file(join(worktreePath, ".claude", "CLAUDE.md")).exists()).toBe(false);
+		expect(await Bun.file(join(worktreePath, "GEMINI.md")).exists()).toBe(false);
 	});
 
 	test("custom instruction path creates necessary subdirectories", async () => {
@@ -876,13 +875,13 @@ describe("formatQualityGatesCapabilities", () => {
 });
 
 describe("INSTRUCTION_PATH placeholder", () => {
-	test("defaults to .claude/CLAUDE.md when instructionPath is not set", async () => {
+	test("defaults to GEMINI.md when instructionPath is not set", async () => {
 		const config = makeConfig({
 			baseDefinition: "Read your overlay at {{INSTRUCTION_PATH}} in your worktree.",
 		});
 		const output = await generateOverlay(config);
 
-		expect(output).toContain("Read your overlay at .claude/CLAUDE.md in your worktree.");
+		expect(output).toContain("Read your overlay at GEMINI.md in your worktree.");
 		expect(output).not.toContain("{{INSTRUCTION_PATH}}");
 	});
 
@@ -895,7 +894,7 @@ describe("INSTRUCTION_PATH placeholder", () => {
 
 		expect(output).toContain("Read your overlay at SAPLING.md in your worktree.");
 		expect(output).not.toContain("{{INSTRUCTION_PATH}}");
-		expect(output).not.toContain(".claude/CLAUDE.md");
+		expect(output).not.toContain("GEMINI.md");
 	});
 
 	test("INSTRUCTION_PATH in base definition replaced throughout (multiple occurrences)", async () => {

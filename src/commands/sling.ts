@@ -215,7 +215,7 @@ export interface BeaconOptions {
  *   [OVERSTORY] <agent-name> (<capability>) <ISO timestamp> task:<task-id>
  *   Depth: <n> | Parent: <parent-name|none>
  *   Startup protocol:
- *   1. Read your assignment in .claude/CLAUDE.md
+ *   1. Read your assignment in GEMINI.md
  *   2. Load expertise: mulch prime
  *   3. Check mail: ov mail check --agent <name>
  *   4. Begin working on task <task-id>

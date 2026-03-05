@@ -23,7 +23,7 @@ import { OVERSTORY_GITIGNORE } from "./init.ts";
 export interface PrimeOptions {
 	agent?: string;
 	compact?: boolean;
-	/** Override the instruction path referenced in agent activation context. Defaults to ".claude/CLAUDE.md". */
+	/** Override the instruction path referenced in agent activation context. Defaults to "GEMINI.md". */
 	instructionPath?: string;
 }
 
@@ -125,7 +125,7 @@ async function healGitignore(overstoryDir: string): Promise<void> {
 export async function primeCommand(opts: PrimeOptions): Promise<void> {
 	const agentName = opts.agent ?? null;
 	const compact = opts.compact ?? false;
-	const instructionPath = opts.instructionPath ?? ".claude/CLAUDE.md";
+	const instructionPath = opts.instructionPath ?? "GEMINI.md";
 
 	// 1. Load config
 	const config = await loadConfig(process.cwd());

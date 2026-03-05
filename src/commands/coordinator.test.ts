@@ -469,6 +469,7 @@ describe("startCoordinator", () => {
 	});
 
 	test("deploys hooks to project root .claude/settings.local.json", async () => {
+		await Bun.write(join(overstoryDir, "config.yaml"), "runtime:\n  default: claude\n");
 		const { deps } = makeDeps();
 		const originalSleep = Bun.sleep;
 		Bun.sleep = (() => Promise.resolve()) as typeof Bun.sleep;
@@ -499,6 +500,7 @@ describe("startCoordinator", () => {
 	});
 
 	test("hooks use coordinator agent name for event logging", async () => {
+		await Bun.write(join(overstoryDir, "config.yaml"), "runtime:\n  default: claude\n");
 		const { deps } = makeDeps();
 		const originalSleep = Bun.sleep;
 		Bun.sleep = (() => Promise.resolve()) as typeof Bun.sleep;
@@ -517,6 +519,7 @@ describe("startCoordinator", () => {
 	});
 
 	test("hooks include ENV_GUARD to avoid affecting user's Claude Code session", async () => {
+		await Bun.write(join(overstoryDir, "config.yaml"), "runtime:\n  default: claude\n");
 		const { deps } = makeDeps();
 		const originalSleep = Bun.sleep;
 		Bun.sleep = (() => Promise.resolve()) as typeof Bun.sleep;
@@ -543,6 +546,7 @@ describe("startCoordinator", () => {
 			"# Coordinator Agent\n\nYou are the coordinator.\n",
 		);
 
+		await Bun.write(join(overstoryDir, "config.yaml"), "runtime:\n  default: claude\n");
 		const { deps, calls } = makeDeps();
 		const originalSleep = Bun.sleep;
 		Bun.sleep = (() => Promise.resolve()) as typeof Bun.sleep;
@@ -582,6 +586,7 @@ describe("startCoordinator", () => {
 			`${JSON.stringify(manifest, null, "\t")}\n`,
 		);
 
+		await Bun.write(join(overstoryDir, "config.yaml"), "runtime:\n  default: claude\n");
 		const { deps, calls } = makeDeps();
 		const originalSleep = Bun.sleep;
 		Bun.sleep = (() => Promise.resolve()) as typeof Bun.sleep;

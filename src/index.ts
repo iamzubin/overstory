@@ -283,7 +283,7 @@ program
 	.option("--skip-review", "Skip review phase for lead agents")
 	.option("--no-scout-check", "Suppress the parentHasScouts scout-before-build warning")
 	.option("--dispatch-max-agents <n>", "Per-lead max agents ceiling (injected into overlay)")
-	.option("--runtime <name>", "Runtime adapter (default: config or claude)")
+	.option("--runtime <name>", "Runtime adapter (default: config or gemini)")
 	.option("--base-branch <branch>", "Base branch for worktree creation (default: current HEAD)")
 	.option("--json", "Output result as JSON")
 	.action(async (taskId, opts) => {

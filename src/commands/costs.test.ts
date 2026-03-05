@@ -1112,6 +1112,7 @@ describe("costsCommand", () => {
 			const projectDir = join(tempHome, ".claude", "projects", projectKey);
 			await mkdir(projectDir, { recursive: true });
 			await Bun.write(join(projectDir, "session-abc123.jsonl"), makeTranscriptContent());
+			await Bun.write(join(tempDir, ".overstory", "config.yaml"), "runtime:\n  default: claude\n");
 
 			process.env.HOME = tempHome;
 
@@ -1134,6 +1135,7 @@ describe("costsCommand", () => {
 			const projectDir = join(tempHome, ".claude", "projects", projectKey);
 			await mkdir(projectDir, { recursive: true });
 			await Bun.write(join(projectDir, "session-abc123.jsonl"), makeTranscriptContent());
+			await Bun.write(join(tempDir, ".overstory", "config.yaml"), "runtime:\n  default: claude\n");
 
 			process.env.HOME = tempHome;
 
@@ -1153,6 +1155,7 @@ describe("costsCommand", () => {
 
 		test("--self shows error when no transcript found", async () => {
 			// No .claude directory — just set HOME to tempHome with nothing in it
+			await Bun.write(join(tempDir, ".overstory", "config.yaml"), "runtime:\n  default: claude\n");
 			process.env.HOME = tempHome;
 
 			await costsCommand(["--self"]);
@@ -1163,6 +1166,7 @@ describe("costsCommand", () => {
 
 		test("--self --json outputs error JSON when no transcript found", async () => {
 			// No .claude directory
+			await Bun.write(join(tempDir, ".overstory", "config.yaml"), "runtime:\n  default: claude\n");
 			process.env.HOME = tempHome;
 
 			await costsCommand(["--self", "--json"]);

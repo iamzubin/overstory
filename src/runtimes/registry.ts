@@ -47,12 +47,12 @@ export function getAllRuntimes(): AgentRuntime[] {
  * 1. Explicit `name` argument (if provided)
  * 2. `config.runtime.capabilities[capability]` (if capability provided)
  * 3. `config.runtime.default` (if config is provided)
- * 4. `"claude"` (hardcoded fallback)
+ * 4. `"gemini"` (hardcoded fallback)
  *
  * Special cases:
  * - Pi runtime receives `config.runtime.pi` for model alias expansion.
  *
- * @param name - Runtime name to resolve (e.g. "claude"). Omit to use config default.
+ * @param name - Runtime name to resolve (e.g. "gemini"). Omit to use config default.
  * @param config - Overstory config for reading the default runtime.
  * @param capability - Agent capability (e.g. "coordinator", "builder") for per-capability routing.
  * @throws {Error} If the resolved runtime name is not registered.
@@ -67,7 +67,7 @@ export function getRuntime(
 		capability && config?.runtime?.capabilities
 			? config.runtime.capabilities[capability]
 			: undefined;
-	const runtimeName = name ?? capabilityRuntime ?? config?.runtime?.default ?? "claude";
+	const runtimeName = name ?? capabilityRuntime ?? config?.runtime?.default ?? "gemini";
 
 	// Pi runtime needs config for model alias expansion.
 	if (runtimeName === "pi") {
