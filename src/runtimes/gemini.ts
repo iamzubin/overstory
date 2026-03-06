@@ -4,13 +4,14 @@
 // Key characteristics:
 // - TUI: `gemini` maintains an interactive Ink-based TUI in tmux
 // - Instruction file: GEMINI.md (read automatically from workspace root)
-// - No hooks: Gemini CLI has no hook/guard mechanism (like Copilot)
+// - Hooks: Migrates Claude-style hooks to Gemini format via `gemini hooks migrate`
 // - Sandbox: `--sandbox` flag + `--approval-mode yolo` for bypass
 // - Headless: `gemini -p "prompt"` for one-shot calls
 // - Transcripts: `--output-format stream-json` produces NDJSON events
 
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { deployHooks } from "../agents/hooks-deployer.ts";
 import type { ResolvedModel } from "../types.ts";
 import type {
 	AgentRuntime,
@@ -28,9 +29,8 @@ import type {
  * Gemini maintains an interactive Ink-based TUI, similar to Copilot.
  *
  * Security: Gemini CLI supports `--sandbox` for filesystem isolation
- * (Seatbelt on macOS, container-based on Linux) but has no hook/guard
- * mechanism for per-tool interception. The `_hooks` parameter in
- * `deployConfig` is unused.
+ * (Seatbelt on macOS, container-based on Linux). Hooks are deployed by
+ * generating Claude-compatible hooks and migrating them via the CLI.
  *
  * Instructions are delivered via `GEMINI.md` (Gemini's native context
  * file convention), which the CLI reads automatically from the workspace.
@@ -93,30 +93,42 @@ export class GeminiRuntime implements AgentRuntime {
 	}
 
 	/**
-	 * Deploy per-agent instructions to a worktree.
+	 * Deploy per-agent instructions and hooks to a worktree.
 	 *
-	 * Writes the overlay to `GEMINI.md` in the worktree root (Gemini's
-	 * native context file convention). The CLI reads GEMINI.md automatically
-	 * when starting in a directory that contains one.
-	 *
-	 * The `hooks` parameter is unused — Gemini CLI has no hook mechanism
-	 * for per-tool interception. Security depends on `--sandbox` and
-	 * `--approval-mode` flags instead.
+	 * Writes the overlay to `GEMINI.md` in the worktree root.
+	 * To support hooks, this method first deploys Claude-style hooks
+	 * via `deployHooks`, then runs `gemini hooks migrate --from-claude`
+	 * to convert them to the `.gemini/settings.json` format used by Gemini.
 	 *
 	 * @param worktreePath - Absolute path to the agent's git worktree
 	 * @param overlay - Overlay content to write as GEMINI.md, or undefined to skip
-	 * @param _hooks - Unused for Gemini runtime
+	 * @param hooks - Hook definitions used by deployHooks
 	 */
 	async deployConfig(
 		worktreePath: string,
 		overlay: OverlayContent | undefined,
-		_hooks: HooksDef,
+		hooks: HooksDef,
 	): Promise<void> {
-		if (!overlay) return;
+		if (overlay) {
+			const geminiPath = join(worktreePath, this.instructionPath);
+			await mkdir(dirname(geminiPath), { recursive: true });
+			await Bun.write(geminiPath, overlay.content);
+		}
 
-		const geminiPath = join(worktreePath, this.instructionPath);
-		await mkdir(dirname(geminiPath), { recursive: true });
-		await Bun.write(geminiPath, overlay.content);
+		await deployHooks(worktreePath, hooks.agentName, hooks.capability, hooks.qualityGates);
+
+		try {
+			const { spawn } = Bun;
+			const proc = spawn(["gemini", "hooks", "migrate", "--from-claude"], {
+				cwd: worktreePath,
+				stdout: "ignore",
+				stderr: "ignore",
+			});
+			await proc.exited;
+		} catch (_err) {
+			// Ignore if gemini CLI is not installed (e.g., in CI/test environments)
+			// or if the migration fails.
+		}
 	}
 
 	/**

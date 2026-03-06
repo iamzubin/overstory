@@ -167,7 +167,7 @@ describe("GeminiRuntime", () => {
 			expect(await file.exists()).toBe(false);
 		});
 
-		test("hooks parameter is unused (no guard deployment)", async () => {
+		test("deploys hooks (Claude-style and Gemini settings)", async () => {
 			await runtime.deployConfig(
 				tempDir,
 				{ content: "# Instructions" },
@@ -181,17 +181,16 @@ describe("GeminiRuntime", () => {
 				},
 			);
 
-			// Only GEMINI.md should exist — no settings files or guard extensions.
+			// GEMINI.md should exist
 			const geminiFile = Bun.file(join(tempDir, "GEMINI.md"));
 			expect(await geminiFile.exists()).toBe(true);
 
-			// No Claude Code settings file.
+			// Claude Code settings file should exist because of deployHooks
 			const settingsFile = Bun.file(join(tempDir, ".claude", "settings.local.json"));
-			expect(await settingsFile.exists()).toBe(false);
+			expect(await settingsFile.exists()).toBe(true);
 
-			// No Pi guard extension.
-			const piGuardFile = Bun.file(join(tempDir, ".pi", "extensions", "overstory-guard.ts"));
-			expect(await piGuardFile.exists()).toBe(false);
+			// We can't strictly assert .gemini/settings.json here because the spawn command
+			// might fail if gemini is not in PATH during CI, but it shouldn't throw an error.
 		});
 
 		test("overwrites existing GEMINI.md", async () => {
