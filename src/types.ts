@@ -95,11 +95,11 @@ export interface OverstoryConfig {
 		redactSecrets: boolean;
 	};
 	runtime?: {
-		/** Default runtime adapter name (default: "claude"). */
+		/** Default runtime adapter name (default: "gemini"). */
 		default: string;
 		/**
 		 * Per-capability runtime overrides. Maps capability names (e.g. "coordinator", "builder")
-		 * to runtime adapter names. Lookup chain: explicit --runtime flag > capabilities[cap] > default > "claude".
+		 * to runtime adapter names. Lookup chain: explicit --runtime flag > capabilities[cap] > default > "gemini".
 		 */
 		capabilities?: Partial<Record<string, string>>;
 		/**
@@ -348,7 +348,7 @@ export interface OverlayConfig {
 	trackerName?: string; // "seeds" or "beads"
 	/** Quality gate commands for the agent overlay. Falls back to defaults if undefined. */
 	qualityGates?: QualityGate[];
-	/** Relative path to the instruction file within the worktree (runtime-specific). Defaults to .claude/CLAUDE.md. */
+	/** Relative path to the instruction file within the worktree (runtime-specific). Defaults to GEMINI.md. */
 	instructionPath?: string;
 }
 

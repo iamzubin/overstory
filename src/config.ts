@@ -89,7 +89,7 @@ export const DEFAULT_CONFIG: OverstoryConfig = {
 		redactSecrets: true,
 	},
 	runtime: {
-		default: "claude",
+		default: "gemini",
 		shellInitDelayMs: 0,
 		pi: {
 			provider: "anthropic",
@@ -722,7 +722,7 @@ function validateConfig(config: OverstoryConfig): void {
 	// - Codex runtime: also allow bare model refs (e.g. gpt-5.3-codex).
 	const validAliases = ["sonnet", "opus", "haiku"];
 	const toolHeavyRoles = ["builder", "scout"];
-	const defaultRuntime = config.runtime?.default ?? "claude";
+	const defaultRuntime = config.runtime?.default ?? "gemini";
 	const allowBareModelRefs = defaultRuntime === "codex";
 	for (const [role, model] of Object.entries(config.models)) {
 		if (model === undefined) continue;

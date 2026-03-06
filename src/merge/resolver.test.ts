@@ -458,15 +458,15 @@ describe("createMergeResolver", () => {
 		});
 
 		// This test runs second -- repo is clean from the abort, same conflict is available
-		test("invokes claude when aiResolveEnabled is true and tier 2 fails", async () => {
-			// Selective spy: mock only claude, let git commands through.
+		test("invokes gemini when aiResolveEnabled is true and tier 2 fails", async () => {
+			// Selective spy: mock only gemini, let git commands through.
 			const originalSpawn = Bun.spawn;
-			let claudeCalled = false;
+			let aiCalled = false;
 
 			const selectiveMock = (...args: unknown[]): unknown => {
 				const cmd = args[0] as string[];
-				if (cmd?.[0] === "claude") {
-					claudeCalled = true;
+				if (cmd?.[0] === "gemini") {
+					aiCalled = true;
 					return mockSpawnResult("resolved content from AI\n", "", 0);
 				}
 				return originalSpawn.apply(Bun, args as Parameters<typeof Bun.spawn>);
@@ -487,7 +487,7 @@ describe("createMergeResolver", () => {
 
 				const result = await resolver.resolve(entry, defaultBranch, repoDir);
 
-				expect(claudeCalled).toBe(true);
+				expect(aiCalled).toBe(true);
 				expect(result.success).toBe(true);
 				expect(result.tier).toBe("ai-resolve");
 				expect(result.entry.status).toBe("merged");
@@ -534,14 +534,14 @@ describe("createMergeResolver", () => {
 
 		// This test runs second -- repo is clean from the abort, same conflict is available
 		test("aborts merge and reimplements when reimagineEnabled is true", async () => {
-			// Selective spy: mock only claude, let git commands through.
+			// Selective spy: mock only gemini, let git commands through.
 			const originalSpawn = Bun.spawn;
-			let claudeCalled = false;
+			let aiCalled = false;
 
 			const selectiveMock = (...args: unknown[]): unknown => {
 				const cmd = args[0] as string[];
-				if (cmd?.[0] === "claude") {
-					claudeCalled = true;
+				if (cmd?.[0] === "gemini") {
+					aiCalled = true;
 					return mockSpawnResult("reimagined content\n", "", 0);
 				}
 				return originalSpawn.apply(Bun, args as Parameters<typeof Bun.spawn>);
@@ -562,7 +562,7 @@ describe("createMergeResolver", () => {
 
 				const result = await resolver.resolve(entry, defaultBranch, repoDir);
 
-				expect(claudeCalled).toBe(true);
+				expect(aiCalled).toBe(true);
 				expect(result.success).toBe(true);
 				expect(result.tier).toBe("reimagine");
 				expect(result.entry.status).toBe("merged");
@@ -775,7 +775,7 @@ describe("createMergeResolver", () => {
 				const originalSpawn = Bun.spawn;
 				const selectiveMock = (...args: unknown[]): unknown => {
 					const cmd = args[0] as string[];
-					if (cmd?.[0] === "claude") {
+					if (cmd?.[0] === "gemini") {
 						// Return prose instead of code
 						return mockSpawnResult(
 							"I need permission to edit the file. Here's the resolved content:\n```\nresolved\n```",
@@ -1035,11 +1035,11 @@ describe("createMergeResolver", () => {
 					});
 				});
 
-				// Mock claude to succeed
+				// Mock gemini to succeed
 				const originalSpawn = Bun.spawn;
 				const selectiveMock = (...args: unknown[]): unknown => {
 					const cmd = args[0] as string[];
-					if (cmd?.[0] === "claude") {
+					if (cmd?.[0] === "gemini") {
 						return mockSpawnResult("resolved content from AI\n", "", 0);
 					}
 					return originalSpawn.apply(Bun, args as Parameters<typeof Bun.spawn>);
@@ -1110,11 +1110,11 @@ describe("createMergeResolver", () => {
 					});
 				});
 
-				// Mock claude to succeed
+				// Mock gemini to succeed
 				const originalSpawn = Bun.spawn;
 				const selectiveMock = (...args: unknown[]): unknown => {
 					const cmd = args[0] as string[];
-					if (cmd?.[0] === "claude") {
+					if (cmd?.[0] === "gemini") {
 						return mockSpawnResult("reimagined content\n", "", 0);
 					}
 					return originalSpawn.apply(Bun, args as Parameters<typeof Bun.spawn>);
@@ -1596,13 +1596,13 @@ describe("createMergeResolver", () => {
 					return "Merge conflict resolved at tier ai-resolve. Branch: old-branch. Agent: old-agent. Conflicting files: src/test.ts.";
 				};
 
-				// Capture the prompt sent to claude
+				// Capture the prompt sent to gemini
 				let capturedPrompt = "";
 				const originalSpawn = Bun.spawn;
 				const selectiveMock = (...args: unknown[]): unknown => {
 					const cmd = args[0] as string[];
-					if (cmd?.[0] === "claude") {
-						capturedPrompt = cmd[3] ?? "";
+					if (cmd?.[0] === "gemini") {
+						capturedPrompt = cmd[2] ?? "";
 						return mockSpawnResult("resolved content\n", "", 0);
 					}
 					return originalSpawn.apply(Bun, args as Parameters<typeof Bun.spawn>);

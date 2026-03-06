@@ -8,10 +8,10 @@ import { PiRuntime } from "./pi.ts";
 import { getRuntime } from "./registry.ts";
 
 describe("getRuntime", () => {
-	it("returns a ClaudeRuntime by default (no args)", () => {
+	it("returns a GeminiRuntime by default (no args)", () => {
 		const runtime = getRuntime();
-		expect(runtime).toBeInstanceOf(ClaudeRuntime);
-		expect(runtime.id).toBe("claude");
+		expect(runtime).toBeInstanceOf(GeminiRuntime);
+		expect(runtime.id).toBe("gemini");
 	});
 
 	it('returns a ClaudeRuntime when name is "claude"', () => {

@@ -320,7 +320,7 @@ export async function generateOverlay(config: OverlayConfig): Promise<string> {
 		"{{QUALITY_GATE_CAPABILITIES}}": formatQualityGatesCapabilities(config.qualityGates),
 		"{{TRACKER_CLI}}": config.trackerCli ?? "sd",
 		"{{TRACKER_NAME}}": config.trackerName ?? "seeds",
-		"{{INSTRUCTION_PATH}}": config.instructionPath ?? ".claude/CLAUDE.md",
+		"{{INSTRUCTION_PATH}}": config.instructionPath ?? "GEMINI.md",
 	};
 
 	let result = template;
@@ -370,7 +370,7 @@ export async function writeOverlay(
 	worktreePath: string,
 	config: OverlayConfig,
 	canonicalRoot: string,
-	instructionPath = ".claude/CLAUDE.md",
+	instructionPath = "GEMINI.md",
 ): Promise<void> {
 	// Guard: never write agent overlays to the canonical project root.
 	// The project root's .claude/CLAUDE.md belongs to the orchestrator/user.

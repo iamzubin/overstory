@@ -632,15 +632,14 @@ describe("ClaudeRuntime integration: buildEnv matches pre-refactor env injection
 		expect(combined).toEqual({ OVERSTORY_AGENT_NAME: "builder-1" });
 	});
 });
-
-describe("ClaudeRuntime integration: registry resolves 'claude' as default", () => {
+describe("GeminiRuntime integration: registry resolves 'gemini' as default", () => {
 	// Import registry here to test the full resolution path
-	test("getRuntime() returns ClaudeRuntime", async () => {
+	test("getRuntime() returns GeminiRuntime", async () => {
 		const { getRuntime } = await import("./registry.ts");
+		const { GeminiRuntime } = await import("./gemini.ts");
 		const rt = getRuntime();
-		expect(rt).toBeInstanceOf(ClaudeRuntime);
-		expect(rt.id).toBe("claude");
-		expect(rt.instructionPath).toBe(".claude/CLAUDE.md");
+		expect(rt).toBeInstanceOf(GeminiRuntime);
+		expect(rt.id).toBe("gemini");
 	});
 
 	test("getRuntime('claude') returns ClaudeRuntime", async () => {
