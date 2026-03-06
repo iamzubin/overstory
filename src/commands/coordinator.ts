@@ -450,47 +450,6 @@ async function startCoordinator(
 
 		store.upsert(session);
 
-		// Give slow shells time to finish initializing before polling for TUI readiness.
-		const shellDelay = config.runtime?.shellInitDelayMs ?? 0;
-		if (shellDelay > 0) {
-			await Bun.sleep(shellDelay);
-		}
-
-		// Wait for Claude Code TUI to render before sending input
-		const tuiReady = await tmux.waitForTuiReady(tmuxSession, (content) =>
-			runtime.detectReady(content),
-		);
-		if (!tuiReady) {
-			// Session may have died — check liveness before proceeding
-			const alive = await tmux.isSessionAlive(tmuxSession);
-			if (!alive) {
-				// Clean up the stale session record
-				store.updateState(COORDINATOR_NAME, "completed");
-				const sessionState = await tmux.checkSessionState(tmuxSession);
-				const detail =
-					sessionState === "no_server"
-						? "The tmux server is no longer running. It may have crashed or been killed externally."
-						: "The Claude Code process may have crashed or exited immediately. Check tmux logs or try running the claude command manually.";
-				throw new AgentError(
-					`Coordinator tmux session "${tmuxSession}" died during startup. ${detail}`,
-					{ agentName: COORDINATOR_NAME },
-				);
-			}
-			// Session is alive but TUI didn't render in time — proceed with warning
-		}
-		await Bun.sleep(1_000);
-
-		const resolvedBackend = await resolveBackend(config.taskTracker.backend, config.project.root);
-		const trackerCli = trackerCliName(resolvedBackend);
-		const beacon = buildCoordinatorBeacon(trackerCli);
-		await tmux.sendKeys(tmuxSession, beacon);
-
-		// Follow-up Enters with increasing delays to ensure submission
-		for (const delay of [1_000, 2_000, 3_000, 5_000]) {
-			await Bun.sleep(delay);
-			await tmux.sendKeys(tmuxSession, "");
-		}
-
 		// Auto-start watchdog if --watchdog flag is present
 		let watchdogPid: number | undefined;
 		if (watchdogFlag) {
@@ -538,11 +497,61 @@ async function startCoordinator(
 			process.stdout.write(`  PID:     ${pid}\n`);
 		}
 
+		// Initialize TUI and send beacon in the background so we can attach immediately
+		const initPromise = (async () => {
+			// Give slow shells time to finish initializing before polling for TUI readiness.
+			const shellDelay = config.runtime?.shellInitDelayMs ?? 0;
+			if (shellDelay > 0) {
+				await Bun.sleep(shellDelay);
+			}
+
+			// Wait for Claude Code TUI to render before sending input
+			const tuiReady = await tmux.waitForTuiReady(tmuxSession, (content) =>
+				runtime.detectReady(content),
+			);
+			if (!tuiReady) {
+				// Session may have died — check liveness before proceeding
+				const alive = await tmux.isSessionAlive(tmuxSession);
+				if (!alive) {
+					// Clean up the stale session record
+					store.updateState(COORDINATOR_NAME, "completed");
+					const sessionState = await tmux.checkSessionState(tmuxSession);
+					const detail =
+						sessionState === "no_server"
+							? "The tmux server is no longer running. It may have crashed or been killed externally."
+							: "The Claude Code process may have crashed or exited immediately. Check tmux logs or try running the claude command manually.";
+					throw new AgentError(
+						`Coordinator tmux session "${tmuxSession}" died during startup. ${detail}`,
+						{ agentName: COORDINATOR_NAME },
+					);
+				}
+				// Session is alive but TUI didn't render in time — proceed with warning
+			}
+			await Bun.sleep(1_000);
+
+			const resolvedBackend = await resolveBackend(config.taskTracker.backend, config.project.root);
+			const trackerCli = trackerCliName(resolvedBackend);
+			const beacon = buildCoordinatorBeacon(trackerCli);
+			await tmux.sendKeys(tmuxSession, beacon);
+
+			// Follow-up Enters with increasing delays to ensure submission
+			for (const delay of [1_000, 2_000, 3_000, 5_000]) {
+				await Bun.sleep(delay);
+				await tmux.sendKeys(tmuxSession, "");
+			}
+		})();
+
+		// Prevent unhandled rejection crash while attached or running in background
+		initPromise.catch(() => {});
+
 		if (shouldAttach) {
-			Bun.spawnSync(["tmux", "attach-session", "-t", tmuxSession], {
+			const proc = Bun.spawn(["tmux", "attach-session", "-t", tmuxSession], {
 				stdio: ["inherit", "inherit", "inherit"],
 			});
+			await proc.exited;
 		}
+
+		await initPromise;
 	} finally {
 		store.close();
 	}
