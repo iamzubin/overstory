@@ -32,7 +32,7 @@ interface RawManifest {
 	capabilityIndex?: unknown;
 }
 
-const MODEL_ALIASES = new Set(["sonnet", "opus", "haiku"]);
+const MODEL_ALIASES = new Set(["sonnet", "opus", "haiku", "auto", "auto-3", "auto-2.5"]);
 
 // Env var mapping: alias → ANTHROPIC_DEFAULT_{ALIAS}_MODEL
 const ALIAS_ENV_VARS: Record<string, string> = {
@@ -47,6 +47,9 @@ const RUNTIME_DEFAULT_MODELS: Record<string, Record<string, string>> = {
 		opus: "gemini-3.1-pro-preview",
 		sonnet: "gemini-3-flash-preview",
 		haiku: "gemini-2.5-flash-lite",
+		auto: "auto",
+		"auto-3": "gemini-3-auto",
+		"auto-2.5": "gemini-2.5-auto",
 	},
 	pi: {
 		opus: "anthropic/claude-opus-4-6",

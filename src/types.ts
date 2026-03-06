@@ -1,7 +1,7 @@
 // === Model & Provider Types ===
 
 /** Backward-compatible model alias for Anthropic models. */
-export type ModelAlias = "sonnet" | "opus" | "haiku";
+export type ModelAlias = "sonnet" | "opus" | "haiku" | "auto" | "auto-3" | "auto-2.5";
 
 /**
  * A model reference: either a simple alias ('sonnet') or a provider-qualified

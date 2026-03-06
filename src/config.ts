@@ -105,6 +105,9 @@ export const DEFAULT_CONFIG: OverstoryConfig = {
 				opus: "gemini-3.1-pro-preview",
 				sonnet: "gemini-3-flash-preview",
 				haiku: "gemini-2.5-flash-lite",
+				auto: "auto",
+				"auto-3": "gemini-3-auto",
+				"auto-2.5": "gemini-2.5-auto",
 			},
 		},
 	},
@@ -728,7 +731,7 @@ function validateConfig(config: OverstoryConfig): void {
 	// models: validate each value.
 	// - Standard runtimes: aliases (sonnet/opus/haiku) or provider-prefixed refs.
 	// - Codex runtime: also allow bare model refs (e.g. gpt-5.3-codex).
-	const validAliases = ["sonnet", "opus", "haiku"];
+	const validAliases = ["sonnet", "opus", "haiku", "auto", "auto-3", "auto-2.5"];
 	const toolHeavyRoles = ["builder", "scout"];
 	const defaultRuntime = config.runtime?.default ?? "gemini";
 	const allowBareModelRefs = defaultRuntime === "codex";

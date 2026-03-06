@@ -1,0 +1,303 @@
+{
+  "hooks": {
+    "BeforeTool": [
+      {
+        "matcher": "write_file",
+        "hooks": [
+          {
+            "command": "[ -z \"$OVERSTORY_AGENT_NAME\" ] && exit 0; [ -z \"$OVERSTORY_WORKTREE_PATH\" ] && exit 0; read -r INPUT; FILE_PATH=$(echo \"$INPUT\" | sed -n 's/.*\"file_path\": *\"\\([^\"]*\\)\".*/\\1/p'); [ -z \"$FILE_PATH\" ] && exit 0; case \"$FILE_PATH\" in /*) ;; *) FILE_PATH=\"$(pwd)/$FILE_PATH\" ;; esac; case \"$FILE_PATH\" in \"$OVERSTORY_WORKTREE_PATH\"/*) exit 0 ;; \"$OVERSTORY_WORKTREE_PATH\") exit 0 ;; esac; echo '{\"decision\":\"block\",\"reason\":\"Path boundary violation: file is outside your assigned worktree. All writes must target files within your worktree.\"}';",
+            "type": "command"
+          }
+        ]
+      },
+      {
+        "matcher": "replace",
+        "hooks": [
+          {
+            "command": "[ -z \"$OVERSTORY_AGENT_NAME\" ] && exit 0; [ -z \"$OVERSTORY_WORKTREE_PATH\" ] && exit 0; read -r INPUT; FILE_PATH=$(echo \"$INPUT\" | sed -n 's/.*\"file_path\": *\"\\([^\"]*\\)\".*/\\1/p'); [ -z \"$FILE_PATH\" ] && exit 0; case \"$FILE_PATH\" in /*) ;; *) FILE_PATH=\"$(pwd)/$FILE_PATH\" ;; esac; case \"$FILE_PATH\" in \"$OVERSTORY_WORKTREE_PATH\"/*) exit 0 ;; \"$OVERSTORY_WORKTREE_PATH\") exit 0 ;; esac; echo '{\"decision\":\"block\",\"reason\":\"Path boundary violation: file is outside your assigned worktree. All writes must target files within your worktree.\"}';",
+            "type": "command"
+          }
+        ]
+      },
+      {
+        "matcher": "NotebookEdit",
+        "hooks": [
+          {
+            "command": "[ -z \"$OVERSTORY_AGENT_NAME\" ] && exit 0; [ -z \"$OVERSTORY_WORKTREE_PATH\" ] && exit 0; read -r INPUT; FILE_PATH=$(echo \"$INPUT\" | sed -n 's/.*\"notebook_path\": *\"\\([^\"]*\\)\".*/\\1/p'); [ -z \"$FILE_PATH\" ] && exit 0; case \"$FILE_PATH\" in /*) ;; *) FILE_PATH=\"$(pwd)/$FILE_PATH\" ;; esac; case \"$FILE_PATH\" in \"$OVERSTORY_WORKTREE_PATH\"/*) exit 0 ;; \"$OVERSTORY_WORKTREE_PATH\") exit 0 ;; esac; echo '{\"decision\":\"block\",\"reason\":\"Path boundary violation: file is outside your assigned worktree. All writes must target files within your worktree.\"}';",
+            "type": "command"
+          }
+        ]
+      },
+      {
+        "matcher": "run_shell_command",
+        "hooks": [
+          {
+            "command": "[ -z \"$OVERSTORY_AGENT_NAME\" ] && exit 0; read -r INPUT; CMD=$(echo \"$INPUT\" | sed 's/.*\"command\": *\"\\([^\"]*\\)\".*/\\1/'); if echo \"$CMD\" | grep -qE '\\bgit\\s+push\\b'; then   echo '{\"decision\":\"block\",\"reason\":\"git push is blocked — use ov merge to integrate changes, push manually when ready\"}';   exit 0; fi; if echo \"$CMD\" | grep -qE 'git\\s+reset\\s+--hard'; then   echo '{\"decision\":\"block\",\"reason\":\"git reset --hard is not allowed — it destroys uncommitted work\"}';   exit 0; fi; if echo \"$CMD\" | grep -qE 'git\\s+checkout\\s+-b\\s'; then   BRANCH=$(echo \"$CMD\" | sed 's/.*git\\s*checkout\\s*-b\\s*\\([^ ]*\\).*/\\1/');   if ! echo \"$BRANCH\" | grep -qE '^overstory/coordinator/'; then     echo '{\"decision\":\"block\",\"reason\":\"Branch must follow overstory/coordinator/{task-id} convention\"}';     exit 0;   fi; fi;",
+            "type": "command"
+          }
+        ]
+      },
+      {
+        "matcher": "Task",
+        "hooks": [
+          {
+            "command": "[ -z \"$OVERSTORY_AGENT_NAME\" ] && exit 0; echo '{\"decision\":\"block\",\"reason\":\"Overstory agents must use '\\''ov sling'\\'' for delegation — Task is not allowed\"}'",
+            "type": "command"
+          }
+        ]
+      },
+      {
+        "matcher": "TeamCreate",
+        "hooks": [
+          {
+            "command": "[ -z \"$OVERSTORY_AGENT_NAME\" ] && exit 0; echo '{\"decision\":\"block\",\"reason\":\"Overstory agents must use '\\''ov sling'\\'' for delegation — TeamCreate is not allowed\"}'",
+            "type": "command"
+          }
+        ]
+      },
+      {
+        "matcher": "TeamDelete",
+        "hooks": [
+          {
+            "command": "[ -z \"$OVERSTORY_AGENT_NAME\" ] && exit 0; echo '{\"decision\":\"block\",\"reason\":\"Overstory agents must use '\\''ov sling'\\'' for delegation — TeamDelete is not allowed\"}'",
+            "type": "command"
+          }
+        ]
+      },
+      {
+        "matcher": "SendMessage",
+        "hooks": [
+          {
+            "command": "[ -z \"$OVERSTORY_AGENT_NAME\" ] && exit 0; echo '{\"decision\":\"block\",\"reason\":\"Overstory agents must use '\\''ov sling'\\'' for delegation — SendMessage is not allowed\"}'",
+            "type": "command"
+          }
+        ]
+      },
+      {
+        "matcher": "TaskCreate",
+        "hooks": [
+          {
+            "command": "[ -z \"$OVERSTORY_AGENT_NAME\" ] && exit 0; echo '{\"decision\":\"block\",\"reason\":\"Overstory agents must use '\\''ov sling'\\'' for delegation — TaskCreate is not allowed\"}'",
+            "type": "command"
+          }
+        ]
+      },
+      {
+        "matcher": "TaskUpdate",
+        "hooks": [
+          {
+            "command": "[ -z \"$OVERSTORY_AGENT_NAME\" ] && exit 0; echo '{\"decision\":\"block\",\"reason\":\"Overstory agents must use '\\''ov sling'\\'' for delegation — TaskUpdate is not allowed\"}'",
+            "type": "command"
+          }
+        ]
+      },
+      {
+        "matcher": "TaskList",
+        "hooks": [
+          {
+            "command": "[ -z \"$OVERSTORY_AGENT_NAME\" ] && exit 0; echo '{\"decision\":\"block\",\"reason\":\"Overstory agents must use '\\''ov sling'\\'' for delegation — TaskList is not allowed\"}'",
+            "type": "command"
+          }
+        ]
+      },
+      {
+        "matcher": "TaskGet",
+        "hooks": [
+          {
+            "command": "[ -z \"$OVERSTORY_AGENT_NAME\" ] && exit 0; echo '{\"decision\":\"block\",\"reason\":\"Overstory agents must use '\\''ov sling'\\'' for delegation — TaskGet is not allowed\"}'",
+            "type": "command"
+          }
+        ]
+      },
+      {
+        "matcher": "TaskOutput",
+        "hooks": [
+          {
+            "command": "[ -z \"$OVERSTORY_AGENT_NAME\" ] && exit 0; echo '{\"decision\":\"block\",\"reason\":\"Overstory agents must use '\\''ov sling'\\'' for delegation — TaskOutput is not allowed\"}'",
+            "type": "command"
+          }
+        ]
+      },
+      {
+        "matcher": "TaskStop",
+        "hooks": [
+          {
+            "command": "[ -z \"$OVERSTORY_AGENT_NAME\" ] && exit 0; echo '{\"decision\":\"block\",\"reason\":\"Overstory agents must use '\\''ov sling'\\'' for delegation — TaskStop is not allowed\"}'",
+            "type": "command"
+          }
+        ]
+      },
+      {
+        "matcher": "AskUserQuestion",
+        "hooks": [
+          {
+            "command": "[ -z \"$OVERSTORY_AGENT_NAME\" ] && exit 0; echo '{\"decision\":\"block\",\"reason\":\"AskUserQuestion requires human interaction -- agents run non-interactively. Use ov mail (--type question) to escalate\"}'",
+            "type": "command"
+          }
+        ]
+      },
+      {
+        "matcher": "EnterPlanMode",
+        "hooks": [
+          {
+            "command": "[ -z \"$OVERSTORY_AGENT_NAME\" ] && exit 0; echo '{\"decision\":\"block\",\"reason\":\"EnterPlanMode requires human interaction -- agents run non-interactively. Use ov mail (--type question) to escalate\"}'",
+            "type": "command"
+          }
+        ]
+      },
+      {
+        "matcher": "EnterWorktree",
+        "hooks": [
+          {
+            "command": "[ -z \"$OVERSTORY_AGENT_NAME\" ] && exit 0; echo '{\"decision\":\"block\",\"reason\":\"EnterWorktree requires human interaction -- agents run non-interactively. Use ov mail (--type question) to escalate\"}'",
+            "type": "command"
+          }
+        ]
+      },
+      {
+        "matcher": "write_file",
+        "hooks": [
+          {
+            "command": "[ -z \"$OVERSTORY_AGENT_NAME\" ] && exit 0; echo '{\"decision\":\"block\",\"reason\":\"coordinator agents cannot modify files — Write is not allowed\"}'",
+            "type": "command"
+          }
+        ]
+      },
+      {
+        "matcher": "replace",
+        "hooks": [
+          {
+            "command": "[ -z \"$OVERSTORY_AGENT_NAME\" ] && exit 0; echo '{\"decision\":\"block\",\"reason\":\"coordinator agents cannot modify files — Edit is not allowed\"}'",
+            "type": "command"
+          }
+        ]
+      },
+      {
+        "matcher": "NotebookEdit",
+        "hooks": [
+          {
+            "command": "[ -z \"$OVERSTORY_AGENT_NAME\" ] && exit 0; echo '{\"decision\":\"block\",\"reason\":\"coordinator agents cannot modify files — NotebookEdit is not allowed\"}'",
+            "type": "command"
+          }
+        ]
+      },
+      {
+        "matcher": "run_shell_command",
+        "hooks": [
+          {
+            "command": "[ -z \"$OVERSTORY_AGENT_NAME\" ] && exit 0; read -r INPUT; CMD=$(echo \"$INPUT\" | sed 's/.*\"command\": *\"\\([^\"]*\\)\".*/\\1/'); if echo \"$CMD\" | grep -qE '^\\s*ov '; then exit 0; fi; if echo \"$CMD\" | grep -qE '^\\s*overstory '; then exit 0; fi; if echo \"$CMD\" | grep -qE '^\\s*bd '; then exit 0; fi; if echo \"$CMD\" | grep -qE '^\\s*sd '; then exit 0; fi; if echo \"$CMD\" | grep -qE '^\\s*git status'; then exit 0; fi; if echo \"$CMD\" | grep -qE '^\\s*git log'; then exit 0; fi; if echo \"$CMD\" | grep -qE '^\\s*git diff'; then exit 0; fi; if echo \"$CMD\" | grep -qE '^\\s*git show'; then exit 0; fi; if echo \"$CMD\" | grep -qE '^\\s*git blame'; then exit 0; fi; if echo \"$CMD\" | grep -qE '^\\s*git branch'; then exit 0; fi; if echo \"$CMD\" | grep -qE '^\\s*mulch '; then exit 0; fi; if echo \"$CMD\" | grep -qE '^\\s*git add'; then exit 0; fi; if echo \"$CMD\" | grep -qE '^\\s*git commit'; then exit 0; fi; if echo \"$CMD\" | grep -qE '^\\s*bun test'; then exit 0; fi; if echo \"$CMD\" | grep -qE '^\\s*bun run lint'; then exit 0; fi; if echo \"$CMD\" | grep -qE '^\\s*bun run typecheck'; then exit 0; fi; if echo \"$CMD\" | grep -qE 'sed\\s+-i|sed\\s+--in-place|echo\\s+.*>|printf\\s+.*>|cat\\s+.*>|tee\\s|\\bvim\\b|\\bnano\\b|\\bvi\\b|\\bmv\\s|\\bcp\\s|\\brm\\s|\\bmkdir\\s|\\btouch\\s|\\bchmod\\s|\\bchown\\s|>>|\\bgit\\s+add\\b|\\bgit\\s+commit\\b|\\bgit\\s+merge\\b|\\bgit\\s+push\\b|\\bgit\\s+reset\\b|\\bgit\\s+checkout\\b|\\bgit\\s+rebase\\b|\\bgit\\s+stash\\b|\\bnpm\\s+install\\b|\\bbun\\s+install\\b|\\bbun\\s+add\\b|\\bbun\\s+-e\\b|\\bbun\\s+--eval\\b|\\bnode\\s+-e\\b|\\bnode\\s+--eval\\b|\\bdeno\\s+eval\\b|\\bpython3?\\s+-c\\b|\\bperl\\s+-e\\b|\\bruby\\s+-e\\b'; then   echo '{\"decision\":\"block\",\"reason\":\"coordinator agents cannot modify files — this command is not allowed\"}';   exit 0; fi;",
+            "type": "command"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "command": "export PATH=\"$HOME/.bun/bin:/usr/local/bin:/opt/homebrew/bin:$PATH\"; [ -z \"$OVERSTORY_AGENT_NAME\" ] && exit 0; ov log tool-start --agent coordinator --stdin",
+            "type": "command"
+          }
+        ]
+      },
+      {
+        "matcher": "run_shell_command",
+        "hooks": [
+          {
+            "command": "export PATH=\"$HOME/.bun/bin:/usr/local/bin:/opt/homebrew/bin:$PATH\"; read -r INPUT; CMD=$(echo \"$INPUT\" | sed 's/.*\"command\": *\"\\([^\"]*\\)\".*/\\1/'); if echo \"$CMD\" | grep -qE '\\bgit\\s+push\\b'; then echo '{\"decision\":\"block\",\"reason\":\"git push is blocked — use ov merge to integrate changes, push manually when ready\"}'; exit 0; fi;",
+            "type": "command"
+          }
+        ]
+      }
+    ],
+    "AfterTool": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "command": "export PATH=\"$HOME/.bun/bin:/usr/local/bin:/opt/homebrew/bin:$PATH\"; [ -z \"$OVERSTORY_AGENT_NAME\" ] && exit 0; ov log tool-end --agent coordinator --stdin",
+            "type": "command"
+          },
+          {
+            "command": "export PATH=\"$HOME/.bun/bin:/usr/local/bin:/opt/homebrew/bin:$PATH\"; [ -z \"$OVERSTORY_AGENT_NAME\" ] && exit 0; ov mail check --inject --agent coordinator --debounce 500",
+            "type": "command"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "command": "export PATH=\"$HOME/.bun/bin:/usr/local/bin:/opt/homebrew/bin:$PATH\"; [ -z \"$OVERSTORY_AGENT_NAME\" ] && exit 0; ov mail check --inject --agent coordinator --debounce 30000",
+            "type": "command"
+          }
+        ]
+      },
+      {
+        "matcher": "run_shell_command",
+        "hooks": [
+          {
+            "command": "export PATH=\"$HOME/.bun/bin:/usr/local/bin:/opt/homebrew/bin:$PATH\"; [ -z \"$OVERSTORY_AGENT_NAME\" ] && exit 0; read -r INPUT; if echo \"$INPUT\" | grep -qE '\\bgit\\s+commit\\b'; then ml diff HEAD~1 >/dev/null 2>&1 || true; fi; exit 0;",
+            "type": "command"
+          }
+        ]
+      }
+    ],
+    "BeforeAgent": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "command": "export PATH=\"$HOME/.bun/bin:/usr/local/bin:/opt/homebrew/bin:$PATH\"; [ -z \"$OVERSTORY_AGENT_NAME\" ] && exit 0; ov mail check --inject --agent coordinator",
+            "type": "command"
+          }
+        ]
+      }
+    ],
+    "AfterAgent": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "command": "export PATH=\"$HOME/.bun/bin:/usr/local/bin:/opt/homebrew/bin:$PATH\"; [ -z \"$OVERSTORY_AGENT_NAME\" ] && exit 0; ov log session-end --agent coordinator --stdin",
+            "type": "command"
+          },
+          {
+            "command": "export PATH=\"$HOME/.bun/bin:/usr/local/bin:/opt/homebrew/bin:$PATH\"; [ -z \"$OVERSTORY_AGENT_NAME\" ] && exit 0; ml learn",
+            "type": "command"
+          }
+        ]
+      }
+    ],
+    "Notification": [],
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "command": "export PATH=\"$HOME/.bun/bin:/usr/local/bin:/opt/homebrew/bin:$PATH\"; [ -z \"$OVERSTORY_AGENT_NAME\" ] && exit 0; ov prime --agent coordinator",
+            "type": "command"
+          },
+          {
+            "command": "export PATH=\"$HOME/.bun/bin:/usr/local/bin:/opt/homebrew/bin:$PATH\"; [ -z \"$OVERSTORY_AGENT_NAME\" ] && exit 0; ov mail check --inject --agent coordinator",
+            "type": "command"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [],
+    "PreCompress": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "command": "export PATH=\"$HOME/.bun/bin:/usr/local/bin:/opt/homebrew/bin:$PATH\"; [ -z \"$OVERSTORY_AGENT_NAME\" ] && exit 0; ov prime --agent coordinator --compact",
+            "type": "command"
+          }
+        ]
+      }
+    ],
+    "BeforeModel": [],
+    "AfterModel": [],
+    "BeforeToolSelection": []
+  }
+}
