@@ -789,3 +789,53 @@ describe("initCommand: .gitattributes setup", () => {
 		expect(content).toBe(existingContent);
 	});
 });
+
+describe("initCommand: .gitignore setup", () => {
+	let tempDir: string;
+	let startDir: string;
+
+	beforeEach(async () => {
+		startDir = process.cwd();
+		tempDir = await createTempGitRepo();
+		process.chdir(tempDir);
+	});
+
+	afterEach(async () => {
+		process.chdir(startDir);
+		await cleanupTempDir(tempDir);
+	});
+
+	test("creates .gitignore with agent overlay entries", async () => {
+		const { spawner } = createMockSpawner({});
+		await initCommand({ skipMulch: true, skipSeeds: true, skipCanopy: true, _spawner: spawner });
+		
+		const gitignorePath = join(tempDir, ".gitignore");
+		const content = await Bun.file(gitignorePath).text();
+		expect(content).toContain("GEMINI.md");
+		expect(content).toContain("SAPLING.md");
+		expect(content).toContain(".claude/CLAUDE.md");
+	});
+
+	test("does not duplicate entries on reinit with --force", async () => {
+		const { spawner } = createMockSpawner({});
+		await initCommand({ skipMulch: true, skipSeeds: true, skipCanopy: true, _spawner: spawner });
+		await initCommand({ force: true, skipMulch: true, skipSeeds: true, skipCanopy: true, _spawner: spawner });
+		
+		const gitignorePath = join(tempDir, ".gitignore");
+		const content = await Bun.file(gitignorePath).text();
+		const matches = content.match(/GEMINI\.md/g);
+		expect(matches?.length).toBe(1);
+	});
+
+	test("preserves existing .gitignore content", async () => {
+		const gitignorePath = join(tempDir, ".gitignore");
+		await Bun.write(gitignorePath, "node_modules/\n");
+		
+		const { spawner } = createMockSpawner({});
+		await initCommand({ skipMulch: true, skipSeeds: true, skipCanopy: true, _spawner: spawner });
+		
+		const content = await Bun.file(gitignorePath).text();
+		expect(content).toContain("node_modules/\n");
+		expect(content).toContain("GEMINI.md");
+	});
+});

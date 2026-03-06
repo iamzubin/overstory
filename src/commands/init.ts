@@ -153,6 +153,32 @@ async function setupGitattributes(projectRoot: string): Promise<boolean> {
 }
 
 /**
+ * Set up .gitignore with entries for agent instruction overlays.
+ *
+ * Only adds entries not already present. Returns true if file was modified.
+ */
+async function setupGitignore(projectRoot: string): Promise<boolean> {
+	const patterns = ["GEMINI.md", "SAPLING.md", ".claude/CLAUDE.md"];
+
+	const gitignorePath = join(projectRoot, ".gitignore");
+	let existing = "";
+
+	try {
+		existing = await Bun.file(gitignorePath).text();
+	} catch {
+		// File doesn't exist yet — will be created
+	}
+
+	const missing = patterns.filter((e) => !existing.includes(e));
+	if (missing.length === 0) return false;
+
+	const separator = existing.length > 0 && !existing.endsWith("\n") ? "\n" : "";
+	const block = ["# Overstory agent overlays", ...missing].join("\n");
+	await Bun.write(gitignorePath, `${existing}${separator}${block}\n`);
+	return true;
+}
+
+/**
  * Detect the project name from git or fall back to directory name.
  */
 async function detectProjectName(root: string): Promise<string> {
@@ -802,6 +828,12 @@ export async function initCommand(opts: InitOptions): Promise<void> {
 	const gitattrsUpdated = await setupGitattributes(projectRoot);
 	if (gitattrsUpdated) {
 		printCreated(".gitattributes");
+	}
+
+	// 10b. Set up .gitignore with agent instruction overlays
+	const gitignoreUpdated = await setupGitignore(projectRoot);
+	if (gitignoreUpdated) {
+		printCreated(".gitignore");
 	}
 
 	// 11. Run onboard for each tool (inject CLAUDE.md sections)
