@@ -188,15 +188,6 @@ async function startMonitor(opts: { json: boolean; attach: boolean }): Promise<v
 
 		store.upsert(session);
 
-		// Send beacon after TUI initialization delay
-		await Bun.sleep(3_000);
-		const beacon = buildMonitorBeacon();
-		await sendKeys(tmuxSession, beacon);
-
-		// Follow-up Enter to ensure submission (same pattern as sling.ts)
-		await Bun.sleep(500);
-		await sendKeys(tmuxSession, "");
-
 		const output = {
 			agentName: MONITOR_NAME,
 			capability: "monitor",
@@ -214,11 +205,29 @@ async function startMonitor(opts: { json: boolean; attach: boolean }): Promise<v
 			process.stdout.write(`  PID:     ${pid}\n`);
 		}
 
+		// Initialize TUI and send beacon in the background so we can attach immediately
+		const initPromise = (async () => {
+			// Send beacon after TUI initialization delay
+			await Bun.sleep(3_000);
+			const beacon = buildMonitorBeacon();
+			await sendKeys(tmuxSession, beacon);
+
+			// Follow-up Enter to ensure submission (same pattern as sling.ts)
+			await Bun.sleep(500);
+			await sendKeys(tmuxSession, "");
+		})();
+
+		// Prevent unhandled rejection crash while attached or running in background
+		initPromise.catch(() => {});
+
 		if (shouldAttach) {
-			Bun.spawnSync(["tmux", "attach-session", "-t", tmuxSession], {
+			const proc = Bun.spawn(["tmux", "attach-session", "-t", tmuxSession], {
 				stdio: ["inherit", "inherit", "inherit"],
 			});
+			await proc.exited;
 		}
+
+		await initPromise;
 	} finally {
 		store.close();
 	}
