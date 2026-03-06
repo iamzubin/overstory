@@ -1029,6 +1029,38 @@ describe("resolveProjectRoot", () => {
 		expect(config.project.root).toBe(repoDir);
 		expect(config.project.canonicalBranch).toBe("develop");
 	});
+
+	test("resolves to local root in nested git structure", async () => {
+		// Scenario: we have a git repo 'A' with .overstory/config.yaml.
+		// Inside 'A', there is a subdirectory 'B' which ALSO has .overstory/config.yaml.
+		// Even though 'B' is part of git repo 'A', 'B' should resolve to itself.
+		repoDir = await createTempGitRepo();
+		repoDir = await realpath(repoDir);
+
+		// Project A (parent)
+		await mkdir(join(repoDir, ".overstory"), { recursive: true });
+		await Bun.write(
+			join(repoDir, ".overstory", "config.yaml"),
+			"project:\n  name: parent-project\n",
+		);
+
+		// Project B (nested)
+		const nestedDir = join(repoDir, "nested-project");
+		await mkdir(join(nestedDir, ".overstory"), { recursive: true });
+		await Bun.write(
+			join(nestedDir, ".overstory", "config.yaml"),
+			"project:\n  name: child-project\n",
+		);
+
+		// resolveProjectRoot from the nested dir should return the nested dir, NOT the parent repo
+		const result = await resolveProjectRoot(nestedDir);
+		expect(result).toBe(nestedDir);
+
+		// loadConfig should also use the child-project config
+		const config = await loadConfig(nestedDir);
+		expect(config.project.name).toBe("child-project");
+		expect(config.project.root).toBe(nestedDir);
+	});
 });
 
 describe("projectRootOverride", () => {

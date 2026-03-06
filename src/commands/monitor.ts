@@ -116,8 +116,8 @@ async function startMonitor(opts: { json: boolean; attach: boolean }): Promise<v
 			join(projectRoot, config.agents.baseDir),
 		);
 		const manifest = await manifestLoader.load();
-		const resolvedModel = resolveModel(config, manifest, "monitor", "sonnet");
 		const runtime = getRuntime(undefined, config, "monitor");
+		const resolvedModel = resolveModel(config, manifest, "monitor", "sonnet", runtime.id);
 
 		// Deploy monitor-specific hooks to the project root's .claude/ directory.
 		await runtime.deployConfig(projectRoot, undefined, {

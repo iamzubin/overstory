@@ -142,8 +142,8 @@ async function startSupervisor(opts: {
 			join(projectRoot, config.agents.baseDir),
 		);
 		const manifest = await manifestLoader.load();
-		const resolvedModel = resolveModel(config, manifest, "supervisor", "opus");
 		const runtime = getRuntime(undefined, config, "supervisor");
+		const resolvedModel = resolveModel(config, manifest, "supervisor", "opus", runtime.id);
 
 		// Deploy supervisor-specific hooks to the project root's .claude/ directory.
 		await runtime.deployConfig(projectRoot, undefined, {

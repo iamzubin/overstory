@@ -41,6 +41,20 @@ const ALIAS_ENV_VARS: Record<string, string> = {
 	opus: "ANTHROPIC_DEFAULT_OPUS_MODEL",
 };
 
+/** Hardcoded model fallbacks for specific runtimes when no config map is found. */
+const RUNTIME_DEFAULT_MODELS: Record<string, Record<string, string>> = {
+	gemini: {
+		opus: "gemini-3.1-pro-preview",
+		sonnet: "gemini-3-flash-preview",
+		haiku: "gemini-2.5-flash-lite",
+	},
+	pi: {
+		opus: "anthropic/claude-opus-4-6",
+		sonnet: "anthropic/claude-sonnet-4-6",
+		haiku: "anthropic/claude-haiku-4-5",
+	},
+};
+
 /**
  * Expand a model alias via its corresponding ANTHROPIC_DEFAULT_{ALIAS}_MODEL env var.
  * Returns the env var value if set, otherwise the original alias.
@@ -350,13 +364,38 @@ export function resolveModel(
 	manifest: AgentManifest,
 	role: string,
 	fallback: string,
+	runtimeId: string = "pi",
 ): ResolvedModel {
 	const configModel = config.models[role];
 	const rawModel = configModel ?? manifest.agents[role]?.model ?? fallback;
 
-	// Simple alias — expand via env var if set (e.g. ANTHROPIC_DEFAULT_SONNET_MODEL)
+	// Simple alias — expand via env var if set (e.g. ANTHROPIC_DEFAULT_SONNET_MODEL).
+	// If not in env, check the config's modelMap for the active runtime.
 	if (MODEL_ALIASES.has(rawModel)) {
-		return { model: expandAliasFromEnv(rawModel) };
+		const fromEnv = expandAliasFromEnv(rawModel);
+		if (fromEnv !== rawModel) {
+			return { model: fromEnv };
+		}
+
+		// 1. Try runtime-specific map (e.g. config.runtime.gemini.modelMap)
+		const runtimeConfig = config.runtime && (config.runtime as any)[runtimeId];
+		if (runtimeConfig?.modelMap?.[rawModel]) {
+			return { model: runtimeConfig.modelMap[rawModel] };
+		}
+
+		// 2. Fall back to config.runtime.pi.modelMap for backward compatibility
+		const piMap = config.runtime?.pi?.modelMap;
+		if (piMap?.[rawModel]) {
+			return { model: piMap[rawModel] };
+		}
+
+		// 3. Last resort: hardcoded defaults for the runtime
+		const runtimeDefaults = RUNTIME_DEFAULT_MODELS[runtimeId];
+		if (runtimeDefaults?.[rawModel]) {
+			return { model: runtimeDefaults[rawModel] };
+		}
+
+		return { model: rawModel };
 	}
 
 	// Provider-prefixed: split on first "/" to get provider name and model ID

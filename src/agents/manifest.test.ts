@@ -676,6 +676,41 @@ describe("resolveModel", () => {
 		expect(result.model).toBe("sonnet");
 		expect(result.env?.ANTHROPIC_DEFAULT_SONNET_MODEL).toBe("org/model/version");
 	});
+	test("expands alias from config.runtime.pi.modelMap when env var is unset", () => {
+		const config = makeConfig();
+		config.runtime = {
+			default: "claude",
+			pi: {
+				provider: "anthropic",
+				modelMap: {
+					opus: "anthropic/claude-opus-from-config",
+				},
+			},
+		};
+		const result = resolveModel(config, baseManifest, "coordinator", "opus", "pi");
+		expect(result).toEqual({ model: "anthropic/claude-opus-from-config" });
+	});
+
+	test("falls back to hardcoded RUNTIME_DEFAULT_MODELS for gemini when config is empty", () => {
+		const config = makeConfig();
+		const result = resolveModel(config, baseManifest, "coordinator", "opus", "gemini");
+		expect(result).toEqual({ model: "gemini-3.1-pro-preview" });
+	});
+
+	test("runtime-specific mapping takes precedence over hardcoded defaults", () => {
+		const config = makeConfig();
+		config.runtime = {
+			default: "gemini",
+			gemini: {
+				provider: "google",
+				modelMap: {
+					opus: "gemini-2.0-experimental",
+				},
+			},
+		};
+		const result = resolveModel(config, baseManifest, "coordinator", "opus", "gemini");
+		expect(result).toEqual({ model: "gemini-2.0-experimental" });
+	});
 });
 
 describe("expandAliasFromEnv", () => {

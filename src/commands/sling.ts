@@ -791,8 +791,8 @@ export async function slingCommand(taskId: string, opts: SlingOptions): Promise<
 			throw err;
 		}
 
-		// 9. Resolve runtime + model (needed for deployConfig, spawn, and beacon)
-		const resolvedModel = resolveModel(config, manifest, capability, agentDef.model);
+		// 9. Resolve model using active runtime ID (needed for deployConfig, spawn, and beacon)
+		const resolvedModel = resolveModel(config, manifest, capability, agentDef.model, runtime.id);
 
 		// 9a. Deploy hooks config (capability-specific guards)
 		await runtime.deployConfig(worktreePath, undefined, {

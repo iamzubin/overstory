@@ -99,6 +99,14 @@ export const DEFAULT_CONFIG: OverstoryConfig = {
 				haiku: "anthropic/claude-haiku-4-5",
 			},
 		},
+		gemini: {
+			provider: "google",
+			modelMap: {
+				opus: "gemini-3.1-pro-preview",
+				sonnet: "gemini-3-flash-preview",
+				haiku: "gemini-2.5-flash-lite",
+			},
+		},
 	},
 };
 
@@ -835,41 +843,62 @@ export async function resolveProjectRoot(startDir: string): Promise<string> {
 		return _projectRootOverride;
 	}
 
-	const { existsSync } = require("node:fs") as typeof import("node:fs");
+	const { existsSync, lstatSync } = require("node:fs") as typeof import("node:fs");
 
-	// Check git worktree FIRST. When running from an agent worktree
-	// (e.g., .overstory/worktrees/{name}/), the worktree may contain
-	// tracked copies of .overstory/config.yaml. We must resolve to the
-	// main repository root so runtime state (mail.db, metrics.db, etc.)
-	// is shared across all agents, not siloed per worktree.
-	try {
-		const proc = Bun.spawn(["git", "rev-parse", "--git-common-dir"], {
-			cwd: startDir,
-			stdout: "pipe",
-			stderr: "pipe",
-		});
-		const exitCode = await proc.exited;
-		if (exitCode === 0) {
-			const gitCommonDir = (await new Response(proc.stdout).text()).trim();
-			const absGitCommon = resolve(startDir, gitCommonDir);
-			// Main repo root is the parent of the .git directory
-			const mainRoot = dirname(absGitCommon);
-			// If mainRoot differs from startDir, we're in a worktree — resolve to canonical root
-			if (mainRoot !== startDir && existsSync(join(mainRoot, OVERSTORY_DIR, CONFIG_FILENAME))) {
+	/** Helper to find the main git repository root via git rev-parse */
+	async function tryGetGitMainRoot(dir: string): Promise<string | undefined> {
+		try {
+			const proc = Bun.spawn(["git", "rev-parse", "--git-common-dir"], {
+				cwd: dir,
+				stdout: "pipe",
+				stderr: "pipe",
+			});
+			const exitCode = await proc.exited;
+			if (exitCode === 0) {
+				const gitCommonDir = (await new Response(proc.stdout).text()).trim();
+				const absGitCommon = resolve(dir, gitCommonDir);
+				return dirname(absGitCommon);
+			}
+		} catch {
+			// git not available or failed
+		}
+		return undefined;
+	}
+
+	// 1. Check if startDir itself has a config.
+	if (existsSync(join(startDir, OVERSTORY_DIR, CONFIG_FILENAME))) {
+		// Is it a git worktree? Worktrees have a .git FILE pointing to the main repo.
+		// Primary project roots have a .git DIRECTORY (or no .git if not a repo).
+		const gitPath = join(startDir, ".git");
+		let isWorktree = false;
+		try {
+			if (existsSync(gitPath)) {
+				const stat = lstatSync(gitPath);
+				isWorktree = stat.isFile();
+			}
+		} catch {
+			// ignore stat errors
+		}
+
+		if (isWorktree) {
+			// It's a worktree — we MUST resolve to the main repo so state is shared.
+			const mainRoot = await tryGetGitMainRoot(startDir);
+			if (mainRoot && existsSync(join(mainRoot, OVERSTORY_DIR, CONFIG_FILENAME))) {
 				return mainRoot;
 			}
 		}
-	} catch {
-		// git not available, fall through
-	}
 
-	// Not inside a worktree (or git not available).
-	// Check if .overstory/config.yaml exists at startDir.
-	if (existsSync(join(startDir, OVERSTORY_DIR, CONFIG_FILENAME))) {
+		// Not a worktree (or git resolution failed/no parent config), so this is our project root.
 		return startDir;
 	}
 
-	// Fallback to the start directory
+	// 2. No local config. Try resolving via git to a parent repository that has one.
+	const mainRoot = await tryGetGitMainRoot(startDir);
+	if (mainRoot && mainRoot !== startDir && existsSync(join(mainRoot, OVERSTORY_DIR, CONFIG_FILENAME))) {
+		return mainRoot;
+	}
+
+	// 3. Fallback to startDir.
 	return startDir;
 }
 
